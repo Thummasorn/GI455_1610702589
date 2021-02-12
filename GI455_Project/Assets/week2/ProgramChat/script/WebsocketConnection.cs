@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 using WebSocketSharp;
+using System;
 using UnityEngine.UI;
 
 
@@ -9,36 +10,63 @@ namespace ProgramChat
 {
     public class WebsocketConnection : MonoBehaviour
     {
-        
-        private int UserCheck = 0;
+        class MessageData
+        {
+            public string username;
+            public string message;
+        }
+
+        //private int UserCheck = 0;
         public GameObject _Login;
         public GameObject _IP_Adress;
         public GameObject _Port;
-        public GameObject _WindowChat;
+        public GameObject _DisplayChat;
         public GameObject _TextChat;
         public GameObject _Chat;
         public GameObject _Send;
-        public GameObject _ScrollView;
 
+        public InputField InputUsername;
+        //public InputField inputText;
         public InputField ChatText;
         public InputField Adress;
         public InputField Port;
-        public Text DisplayChat;
- 
+        //public Text DisplayChat;
+        public Text sendText;
+        public Text receiveText;
+
         private string adress;
         private string port;
-        private string TextChat;
+        //private string TextChat;
+        private string tempMessageString;
         private WebSocket websocket;
 
         // Update is called once per frame
-        void Update()
+        private void Update()
         {
-            if (Input.GetKeyDown(KeyCode.Return))
+            //if (tempMessageString != null && tempMessageString != "")
+            if (string.IsNullOrEmpty(tempMessageString) == false)
             {
-                websocket.Send("Number :" + Random.Range(0, 99999));
-            }
+                //receiveText.text += tempMessageString + "\n";
 
-            
+                MessageData receivemessageData = JsonUtility.FromJson<MessageData>(tempMessageString);
+
+                if (receivemessageData.username == InputUsername.text)
+                {
+                    sendText.text += receivemessageData.username + " : " + receivemessageData.message + "\n";
+                    receiveText.text += "\n";
+                }
+                else
+                {
+                    sendText.text += "\n";
+                    receiveText.text += receivemessageData.username + " : " + receivemessageData.message + "\n";
+                }
+
+                tempMessageString = "";
+            }
+            //if (Input.GetKeyDown(KeyCode.Return))
+            //{
+            //    websocket.Send("Number :" + Random.Range(0, 99999));
+            //}
 
         }
         public void Login()
@@ -56,20 +84,28 @@ namespace ProgramChat
             _Login.SetActive(false);
             _IP_Adress.SetActive(false);
             _Port.SetActive(false);
-            _WindowChat.SetActive(true);
+            _DisplayChat.SetActive(true);
             _TextChat.SetActive(true);
             _Chat.SetActive(true);
             _Send.SetActive(true);
-            _ScrollView.SetActive(true);
+            
 
         }
        
         public void TextChatSend()
-        {             
-            TextChat = ChatText.text;
+        {
+            MessageData messageData = new MessageData();
+            messageData.username = InputUsername.text;
+            messageData.message = ChatText.text;
+
+            string toJsonStr = JsonUtility.ToJson(messageData);
+
+            websocket.Send(toJsonStr);
             ChatText.text = "";
-            websocket.Send(TextChat);
-            UserCheck++;
+            //TextChat = ChatText.text;
+            //ChatText.text = "";
+            //websocket.Send(TextChat);
+            //UserCheck++;
         }
         public void OnDestroy()
         {
@@ -82,16 +118,16 @@ namespace ProgramChat
         }
         public void OnMessage(object sender, MessageEventArgs messageEventArgs)
         {
-            
-            DisplayChat.text += "\n" + messageEventArgs.Data;
+            tempMessageString = messageEventArgs.Data;
+            //DisplayChat.text += "\n" + messageEventArgs.Data;
             Debug.Log("Message from server : " + messageEventArgs.Data);
 
-            
-            if (UserCheck == 0)
-            {
-                DisplayChat.alignment = TextAnchor.LowerLeft;
-            }
-            
+
+            //if (UserCheck == 0)
+            //{
+            //    DisplayChat.alignment = TextAnchor.LowerLeft;
+            //}
+
         }
        
     }
